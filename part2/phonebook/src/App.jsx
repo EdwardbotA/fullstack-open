@@ -5,12 +5,17 @@ import phoneService from "./services/phonebook";
 import Filter from "./components/Filter";
 import PersonForm from "./components/PersonForm";
 import Persons from "./components/Persons";
+import Notification from "./components/Notification";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [filterNames, setFilterNames] = useState("");
+  const [successMessage, setSuccessMessage] = useState({
+    message: null,
+    error: false,
+  });
 
   useEffect(() => {
     phoneService.getAll().then((resp) => setPersons(resp));
@@ -37,11 +42,39 @@ const App = () => {
         number: newNumber,
       };
 
-      phoneService.update(oldPersonId.id, newPerson).then((resp) => {
-        setPersons(persons.map((p) => (p.id !== resp.id ? p : resp)));
-        setNewName("");
-        setNewNumber("");
+      phoneService
+        .update(oldPersonId.id, newPerson)
+        .then((resp) => {
+          setPersons(persons.map((p) => (p.id !== resp.id ? p : resp)));
+          setNewName("");
+          setNewNumber("");
+        })
+        .catch((error) => {
+          setSuccessMessage({
+            message: `Information of '${newPerson.name}' has already been removed from server`,
+            error: true,
+          });
+
+          setTimeout(() => {
+            setSuccessMessage({
+              message: null,
+              error: false,
+            });
+          }, 5000);
+          setPersons(persons.filter((p) => p.id !== oldPersonId.id));
+        });
+
+      setSuccessMessage({
+        message: `Number updated for ${newPerson.name}`,
+        error: false,
       });
+
+      setTimeout(() => {
+        setSuccessMessage({
+          message: null,
+          error: false,
+        });
+      }, 5000);
 
       return;
     }
@@ -56,6 +89,15 @@ const App = () => {
       setNewName("");
       setNewNumber("");
     });
+
+    setSuccessMessage({ message: `Added ${newPerson.name}`, error: false });
+
+    setTimeout(() => {
+      setSuccessMessage({
+        message: null,
+        error: false,
+      });
+    }, 5000);
   };
 
   const removePhone = (person) => {
@@ -84,6 +126,8 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+
+      <Notification data={successMessage} />
 
       <Filter filter={filterNames} handleFilter={handleFilter} />
 
